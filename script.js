@@ -1,68 +1,69 @@
-// دالة لاستخراج معلومات الجروب من رابط الواتساب
 async function fetchGroupInfo(whatsappLink) {
     try {
-        // في الواقع، لا يمكن جلب بيانات الجروب مباشرة من الواتساب بسبب سياسة CORS
-        // لذلك سنستخدم حل بديل بمعلومات افتراضية
-        
-        // يمكنك استبدال هذا الجزء بخدمة API إذا كنت تملك واحدة
+        // استخراج معرف الجروب من الرابط
         const groupId = whatsappLink.split('/').pop();
         
-        return {
-            name: `جروب ${groupId.substring(0, 5)}`,
-            type: "نوع الجروب غير محدد",
-            image: "https://via.placeholder.com/50/075e54/ffffff?text=WA"
-        };
+        // إنشاء صورة الجروب بناءً على المعرف (حل بديل)
+        const groupImage = `https://api.multiavatar.com/${groupId}.png`;
         
-        // في حالة وجود API حقيقية:
-        // const response = await fetch(`your-api-endpoint?url=${encodeURIComponent(whatsappLink)}`);
-        // return await response.json();
-    } catch (error) {
-        console.error('Error fetching group info:', error);
         return {
-            name: "جروب غير معروف",
-            type: "غير محدد",
-            image: "https://via.placeholder.com/50/cccccc/333333?text=WA"
+            name: `جروب ${groupId.substring(0, 6)}`,
+            type: "انقر للانضمام",
+            image: groupImage
+        };
+    } catch (error) {
+        console.error('Error:', error);
+        return {
+            name: "جروب واتساب",
+            type: "انقر للانضمام",
+            image: "https://cdn-icons-png.flaticon.com/512/124/124034.png"
         };
     }
 }
 
-// دالة لتحميل وعرض الجروبات
 async function loadGroups() {
     const groupsList = document.getElementById('groupsList');
     
     try {
-        // جلب ملف JSON الخارجي
         const response = await fetch('groups.json');
-        const whatsappLinks = await response.json();
+        if (!response.ok) throw new Error('Failed to load groups');
         
-        // مسح رسالة التحميل
+        const whatsappLinks = await response.json();
         groupsList.innerHTML = '';
         
-        // تحميل كل جروب
         for (const link of whatsappLinks) {
             const groupInfo = await fetchGroupInfo(link);
             
             const groupElement = document.createElement('a');
             groupElement.href = link;
-            groupElement.target = "_blank";
             groupElement.className = "group-banner";
+            groupElement.target = "_blank";
+            groupElement.rel = "noopener noreferrer";
             
             groupElement.innerHTML = `
-                <div class="group-info">
-                    <div class="group-name">${groupInfo.name}</div>
-                    <div class="group-type">${groupInfo.type}</div>
+                <div class="group-image-container">
+                    <img src="${groupImage}" alt="${groupInfo.name}" class="group-image" 
+                         onerror="this.src='https://cdn-icons-png.flaticon.com/512/124/124034.png'">
                 </div>
-                <img src="${groupInfo.image}" alt="${groupInfo.name}" class="group-image">
+                <div class="group-info">
+                    <h3 class="group-name">${groupInfo.name}</h3>
+                    <p class="group-type">${groupInfo.type}</p>
+                </div>
+                <i class="fas fa-arrow-left join-icon"></i>
             `;
             
             groupsList.appendChild(groupElement);
         }
     } catch (error) {
-        console.error('Error loading groups:', error);
-        groupsList.innerHTML = '<div class="error">حدث خطأ أثناء تحميل الجروبات</div>';
+        console.error('Error:', error);
+        groupsList.innerHTML = `
+            <div class="error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>حدث خطأ في تحميل الجروبات</p>
+                <button onclick="location.reload()">إعادة المحاولة</button>
+            </div>
+        `;
     }
 }
 
-// تحميل الجروبات عند فتح الصفحة
-window.onload = loadGroups;
-
+window.addEventListener('DOMContentLoaded', loadGroups);
